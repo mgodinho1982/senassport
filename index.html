@@ -267,11 +267,13 @@ function loadFromSheets(){
   script.src = API_URL + '?action=get&callback=' + cbName;
   document.body.appendChild(script);
 }
-function saveToSheets(){
+
+function save(){ saveLocal(); }
+
+function addToSheets(entry){
   showSyncing(true);
-  var cbName = 'cbsave_' + Date.now();
+  var cbName = 'cbadd_' + Date.now();
   var script = document.createElement('script');
-  var url = API_URL + '?action=save&callback=' + cbName + '&data=' + encodeURIComponent(JSON.stringify(despesas));
   window[cbName] = function(result){
     delete window[cbName];
     if(document.body.contains(script)) document.body.removeChild(script);
@@ -284,10 +286,17 @@ function saveToSheets(){
     showSyncing(false);
     showToast('Salvo localmente (sem internet)','error');
   };
-  script.src = url;
+  script.src = API_URL + '?action=add&callback=' + cbName + '&data=' + encodeURIComponent(JSON.stringify(entry));
   document.body.appendChild(script);
 }
-function save(){ saveLocal(); saveToSheets(); }
+
+function deleteFromSheets(id){
+  var cbName = 'cbdel_' + Date.now();
+  var script = document.createElement('script');
+  window[cbName] = function(){ delete window[cbName]; if(document.body.contains(script)) document.body.removeChild(script); };
+  script.src = API_URL + '?action=delete&callback=' + cbName + '&id=' + id;
+  document.body.appendChild(script);
+}
 function forceSync(){
   try{ localStorage.removeItem(STORAGE_KEY); }catch{}
   despesas=[]; render(); loadFromSheets();
@@ -676,6 +685,7 @@ function openDeleteModal(id){ deleteTarget=id; document.getElementById('delete-m
 function closeModal(){ document.getElementById('delete-modal').style.display='none'; deleteTarget=null; }
 function confirmDelete(){
   if(!deleteTarget) return;
+  deleteFromSheets(deleteTarget);
   despesas=despesas.filter(d=>d.id!==deleteTarget);
   save(); closeModal(); showToast('Despesa removida','error'); render();
 }
